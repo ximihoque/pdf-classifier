@@ -10,6 +10,13 @@ class Model(object):
     Wrapper for keras model for image classification 
     """
     def __init__(self, model_dir, train_dir=None, train=False, valid_dir=None):
+        """
+        Args:
+            model_dir: (str), Directory to export saved model, or load saved model. 
+            train_dir: (str), Directory for images to be trained
+            train: (bool), for training mode or prediction mode
+            valid_dir: (str), Directory for validation data.
+        """
         self.train_dir = train_dir
         self.model_dir = model_dir
         self.valid_dir = valid_dir
@@ -37,8 +44,11 @@ class Model(object):
           zoom_range=0.2, horizontal_flip=True)
         test_imagedata = ImageDataGenerator(rescale=1. / 255)
         training_set = \
-            train_imagedata.flow_from_directory('Samples'
+            train_imagedata.flow_from_directory(self.train_dir
                 , target_size=(64, 64), batch_size=32, class_mode='categorical')
+        
+        #TODO:
+        #handle if validation data not present
         test_set = \
             test_imagedata.flow_from_directory('Samples_old'
                 , target_size=(64, 64), batch_size=32, class_mode='categorical')
@@ -92,5 +102,5 @@ class Model(object):
         Predicts class label for image
         """
         img_tensor = load_image(img_path)
-        #return self.classes[self.model.predict_classes(img_tensor)[0]]
-        return self.model.predict(img_tensor)
+        return self.classes[self.model.predict_classes(img_tensor)[0]]
+        #return self.model.predict(img_tensor)

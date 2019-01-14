@@ -5,6 +5,9 @@ import glob, os, time
 from itertools import product
 from shutil import copyfile
 import multiprocessing
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 #from functools import partial
 #from contextlib import contextmanager
 
@@ -68,12 +71,11 @@ class Prediction(object):
         #Starting PDF --> JPG process 
         p1 = Process(target=self.process_pdf)
         p1.start()
-        print ("Started processing pds")
+        logging.info("PDF --> JPG started")
 
         while True:
-            print ("Fetching from queue")
             processed_pdf = self.queue.get()
-            print ("Predicting") 
+            logging.info("Fetched: {}".format(processed_pdf)) 
             shelf = self.predict_pdf(processed_pdf)
-            print ("Shelving")
+            logging.info("Shelving...")
             self.shelf_pdf(processed_pdf, os.path.join(self.output_dir, shelf))

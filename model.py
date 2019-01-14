@@ -103,4 +103,9 @@ class Model(object):
         """
         img_tensor = load_image(img_path)
         return self.classes[self.model.predict_classes(img_tensor)[0]]
+        
+        #idx = argmax(model.predict)
+        #check if a[idx] > threshold
+        # true --> self.classes[self.model.predict_classes(img_tensor)[0]]
+        #false --> others
         #return self.model.predict(img_tensor)

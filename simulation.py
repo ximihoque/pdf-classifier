@@ -9,6 +9,7 @@ class Simulation(object):
     Performs pipeline simulation 
     """
     def __init__(self):
+    
         self.prediction = Prediction("test_images", Model(model_dir= "../model_dir"))
         self.training = Train("../Samples", "../model_dir", "../Samples_old")
     

@@ -50,8 +50,8 @@ class Prediction(object):
         
         pdf_dir = pdf_path.strip(".pdf")
         
-        predictions = [self.model.predict(os.path.join(pdf_dir, img_name)) for img_name in os.listdir(pdf_dir)]
-        items = {predictions.count(i):i for i in predictions}
+        predictions = [self.model.predict(os.path.join(pdf_dir, img_name))  for img_name in os.listdir(pdf_dir)]
+        items = {predictions.count(i):i for i,_ in predictions}
         return items[max(items.keys())]
 
     def shelf_pdf(self, pdf_path, shelf):

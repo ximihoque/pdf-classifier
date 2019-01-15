@@ -4,6 +4,7 @@ import time, os, glob
 from utils import load_image
 from keras.preprocessing.image import ImageDataGenerator
 import config
+import numpy as np
 
 class Model(object):
     """
@@ -102,10 +103,12 @@ class Model(object):
         Predicts class label for image
         """
         img_tensor = load_image(img_path)
-        return self.classes[self.model.predict_classes(img_tensor)[0]]
-        
-        #idx = argmax(model.predict)
-        #check if a[idx] > threshold
-        # true --> self.classes[self.model.predict_classes(img_tensor)[0]]
-        #false --> others
-        #return self.model.predict(img_tensor)
+        #return self.classes[self.model.predict_classes(img_tensor)[0]]
+        #img_tensor = load_image(img_path)
+        threshold=0.9
+        prob=self.model.predict(img_tensor)
+        i,j = np.unravel_index(prob.argmax(), prob.shape)
+        if prob[i,j]>threshold:
+            return self.classes[self.model.predict_classes(img_tensor)[0]], prob[i,j]
+        else:
+            return "Unclassified", prob[i,j]

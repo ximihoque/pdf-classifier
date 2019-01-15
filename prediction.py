@@ -78,4 +78,4 @@ class Prediction(object):
             logging.info("Fetched: {}".format(processed_pdf)) 
             shelf = self.predict_pdf(processed_pdf)
             logging.info("Shelving...")
-            self.shelf_pdf(processed_pdf, os.path.join(self.output_dir, shelf))
+            self.shelf_pdf(processed_pdf, shelf=os.path.join(self.output_dir, shelf))

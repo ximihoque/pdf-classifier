@@ -7,6 +7,7 @@ from shutil import copyfile
 import multiprocessing
 import logging, monitor
 logging.basicConfig(level=logging.INFO)
+import subprocess
 
 #from functools import partial
 #from contextlib import contextmanager
@@ -86,8 +87,15 @@ class Prediction(object):
             os.mkdir(self.output_dir)
         if not os.path.exists(shelf):
             os.mkdir(shelf)    
-        copyfile(pdf_path, os.path.join(shelf,pdf_path.split('/')[-1]))
-
+        
+        #Copy pdf
+        copyfile(pdf_path, os.path.join(shelf, pdf_path.split('/')[-1]))    
+        
+        #Copy its images 
+        pdf_dir = pdf_path.strip(".pdf")
+        map(lambda path: copyfile(os.path.join(pdf_dir, path),
+                                    os.path.join(shelf, path)), os.listdir(pdf_dir))
+        
     def action(self):
         """
         Performs prediction simulation actions

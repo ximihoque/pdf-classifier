@@ -6,7 +6,7 @@ from itertools import product
 from shutil import copyfile
 import multiprocessing
 import logging, monitor
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 #from functools import partial
 #from contextlib import contextmanager
@@ -34,7 +34,7 @@ class Prediction(object):
         self.dir_ = source           #Pdf
         self.output_dir = "output"   #Result
 
-    def process_pdf(self, single=False):
+    def process_pdf(self):
         """
         Creates images per pdf inside the class directory (multiprocessing)
         """
@@ -74,7 +74,7 @@ class Prediction(object):
         with open("logs.txt", "a") as f:
             t = time.localtime()
             timestamp = time.strftime('%b-%d-%H:%M', t)
-            f.write("{}, {}, {}".format(timestamp, class_, score_))
+            f.write("{}, {}, {}, {}".format(timestamp, pdf_path, class_, score_))
             f.write("\n")
         return class_
 

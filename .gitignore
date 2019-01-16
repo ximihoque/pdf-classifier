@@ -3,3 +3,6 @@ output/
 test_images/
 *.pyc
 logs.txt
+/Samples
+/Samples_old
+.DS_Store

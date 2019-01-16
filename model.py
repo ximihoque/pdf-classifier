@@ -3,8 +3,10 @@ import tensorflow as tf
 import time, os, glob
 from utils import load_image
 from keras.preprocessing.image import ImageDataGenerator
-import config
+import config, json
 import numpy as np
+import logging, monitor
+logging.basicConfig(level=logging.INFO)
 
 class Model(object):
     """
@@ -23,10 +25,16 @@ class Model(object):
         self.valid_dir = valid_dir
 
         #In prediction mode
-        if not train:
-            self.model = self.load_model()
-            self.model.load_weights(self.latest_weights())
-            self.classes = config.classes
+        try:
+            if not train:
+                with open('classes.txt') as json_file:
+                    data = json.load(json_file)
+                    
+                self.classes = {int(i):data[i] for i in data.keys()}
+                self.model = self.load_model()
+                self.model.load_weights(self.latest_weights())
+        except Exception, err:
+            logging.info(err)
 
     def load_model(self):
         classifier = tf.keras.models.Sequential()
@@ -51,12 +59,14 @@ class Model(object):
         #TODO:
         #handle if validation data not present
         test_set = \
-            test_imagedata.flow_from_directory('Samples_old'
+            test_imagedata.flow_from_directory(self.valid_dir
                 , target_size=(64, 64), batch_size=32, class_mode='categorical')
         #Update the config when this method is invoked
         #reverse the mapping
-        config.classes = {j:i for i,j in zip(training_set.class_indices.keys(), 
-                                training_set.class_indices.values()) }
+        self.classes = {j:i for i,j in zip(training_set.class_indices.keys(), 
+                               training_set.class_indices.values()) }
+        with open('classes.txt', 'w') as outfile:
+            json.dump(self.classes, outfile)
         return training_set, test_set 
 
 

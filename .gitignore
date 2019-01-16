@@ -1,3 +1,4 @@
-test_images/
+test_pdfs/
 output/
+test_images/
 *.pyc

@@ -5,7 +5,7 @@ import glob, os, time
 from itertools import product
 from shutil import copyfile
 import multiprocessing
-import logging
+import logging, monitor
 logging.basicConfig(level=logging.DEBUG)
 
 #from functools import partial
@@ -27,25 +27,33 @@ class Prediction(object):
         self.model = model
 
         #Multi-processing vars
-        self.queue = Queue()
+        self.queue = Queue()         #for prediction process
+        self.pdf_monitor = Queue()   #for pdf processing process
 
         #Pdf directory (hard coded)
         self.dir_ = source           #Pdf
         self.output_dir = "output"   #Result
 
-    def process_pdf(self):
+    def process_pdf(self, single=False):
         """
         Creates images per pdf inside the class directory (multiprocessing)
         """
+    
         pdf_files = glob.glob(os.path.join(self.dir_, "*.pdf"))
 
         #with poolcontext(processes=3) as pool:
-         #   pool.map(partial(export, in_dir=True, q=self.queue), pdf_files)
+        #   pool.map(partial(export, in_dir=True, q=self.queue), pdf_files)
         map(lambda pdf_file: export(pdf_file, True, self.queue), pdf_files)
+
+        while True:
+            pdf_file = self.pdf_monitor.get()
+            logging.debug("New pdf Detected: {}".format(pdf_file))
+            export(pdf_file, True, self.queue)
 
     def predict_pdf(self, pdf_path):
         """
         Combines predictions of multiple images for same pdf
+        Returns: str, class label for pdf
         """
         
         pdf_dir = pdf_path.strip(".pdf")
@@ -72,6 +80,11 @@ class Prediction(object):
         p1 = Process(target=self.process_pdf)
         p1.start()
         logging.info("PDF --> JPG started")
+        
+        #Monitoring for pdfs in directory and processing them
+        monitor.queue = self.pdf_monitor
+        w = monitor.Watcher()
+        w.run()
 
         while True:
             processed_pdf = self.queue.get()

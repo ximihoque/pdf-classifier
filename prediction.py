@@ -55,12 +55,28 @@ class Prediction(object):
         Combines predictions of multiple images for same pdf
         Returns: str, class label for pdf
         """
-        
+        def avg_score(item, iter_, count):
+            count = {count[i]:i for i in count.keys()}
+            score = 0
+            for i,s in iter_:
+                if i==item:
+                    score += s
+            return score/count[item]
         pdf_dir = pdf_path.strip(".pdf")
         
         predictions = [self.model.predict(os.path.join(pdf_dir, img_name))  for img_name in os.listdir(pdf_dir)]
-        items = {predictions.count(i):i for i,_ in predictions}
-        return items[max(items.keys())]
+        items = [i for i,_ in predictions]
+        count = {items.count(i):i for i,_ in predictions}
+
+        class_ = count[max(count.keys())]
+        score_ = avg_score(class_, predictions, count)
+        #log the class_ and score_ in file for logging history
+        with open("logs.txt", "a") as f:
+            t = time.localtime()
+            timestamp = time.strftime('%b-%d-%H:%M', t)
+            f.write("{}, {}, {}".format(timestamp, class_, score_))
+            f.write("\n")
+        return class_
 
     def shelf_pdf(self, pdf_path, shelf):
         """

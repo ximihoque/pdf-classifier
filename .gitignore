@@ -2,3 +2,4 @@ test_pdfs/
 output/
 test_images/
 *.pyc
+logs.txt

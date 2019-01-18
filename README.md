@@ -3,7 +3,7 @@ PDF document classification automated training and testing pipeline.
 
 **Usage :-** <br>
 
-<code>python prediction.py simulation action </code>
+<code>python simulation.py prediction action </code>
 
 **Note :-**
 

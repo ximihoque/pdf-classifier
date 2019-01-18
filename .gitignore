@@ -1,2 +1,8 @@
-test_images/
+test_pdfs/
 output/
+test_images/
+*.pyc
+logs.txt
+/Samples
+/Samples_old
+.DS_Store

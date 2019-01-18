@@ -5,6 +5,10 @@ import glob, os, time
 from itertools import product
 from shutil import copyfile
 import multiprocessing
+import logging, monitor
+logging.basicConfig(level=logging.INFO)
+import subprocess
+
 #from functools import partial
 #from contextlib import contextmanager
 
@@ -24,7 +28,8 @@ class Prediction(object):
         self.model = model
 
         #Multi-processing vars
-        self.queue = Queue()
+        self.queue = Queue()         #for prediction process
+        self.pdf_monitor = Queue()   #for pdf processing process
 
         #Pdf directory (hard coded)
         self.dir_ = source           #Pdf
@@ -34,22 +39,45 @@ class Prediction(object):
         """
         Creates images per pdf inside the class directory (multiprocessing)
         """
+    
         pdf_files = glob.glob(os.path.join(self.dir_, "*.pdf"))
 
         #with poolcontext(processes=3) as pool:
-         #   pool.map(partial(export, in_dir=True, q=self.queue), pdf_files)
+        #   pool.map(partial(export, in_dir=True, q=self.queue), pdf_files)
         map(lambda pdf_file: export(pdf_file, True, self.queue), pdf_files)
+
+        while True:
+            pdf_file = self.pdf_monitor.get()
+            logging.debug("New pdf Detected: {}".format(pdf_file))
+            export(pdf_file, True, self.queue)
 
     def predict_pdf(self, pdf_path):
         """
         Combines predictions of multiple images for same pdf
+        Returns: str, class label for pdf
         """
-        
+        def avg_score(item, iter_, count):
+            count = {count[i]:i for i in count.keys()}
+            score = 0
+            for i,s in iter_:
+                if i==item:
+                    score += s
+            return score/count[item]
         pdf_dir = pdf_path.strip(".pdf")
         
-        predictions = [self.model.predict(os.path.join(pdf_dir, img_name)) for img_name in os.listdir(pdf_dir)]
-        items = {predictions.count(i):i for i in predictions}
-        return items[max(items.keys())]
+        predictions = [self.model.predict(os.path.join(pdf_dir, img_name))  for img_name in os.listdir(pdf_dir)]
+        items = [i for i,_ in predictions]
+        count = {items.count(i):i for i,_ in predictions}
+
+        class_ = count[max(count.keys())]
+        score_ = avg_score(class_, predictions, count)
+        #log the class_ and score_ in file for logging history
+        with open("logs.txt", "a") as f:
+            t = time.localtime()
+            timestamp = time.strftime('%b-%d-%H:%M', t)
+            f.write("{}, {}, {}, {}".format(timestamp, pdf_path, class_, score_))
+            f.write("\n")
+        return class_
 
     def shelf_pdf(self, pdf_path, shelf):
         """
@@ -59,8 +87,15 @@ class Prediction(object):
             os.mkdir(self.output_dir)
         if not os.path.exists(shelf):
             os.mkdir(shelf)    
-        copyfile(pdf_path, os.path.join(shelf,pdf_path.split('/')[-1]))
-
+        
+        #Copy pdf
+        copyfile(pdf_path, os.path.join(shelf, pdf_path.split('/')[-1]))    
+        
+        #Copy its images 
+        pdf_dir = pdf_path.strip(".pdf")
+        map(lambda path: copyfile(os.path.join(pdf_dir, path),
+                                    os.path.join(shelf, path)), os.listdir(pdf_dir))
+        
     def action(self):
         """
         Performs prediction simulation actions
@@ -68,12 +103,16 @@ class Prediction(object):
         #Starting PDF --> JPG process 
         p1 = Process(target=self.process_pdf)
         p1.start()
-        print ("Started processing pds")
+        logging.info("PDF --> JPG started")
+        
+        #Monitoring for pdfs in directory and processing them
+        monitor.queue = self.pdf_monitor
+        w = monitor.Watcher()
+        w.run()
 
         while True:
-            print ("Fetching from queue")
             processed_pdf = self.queue.get()
-            print ("Predicting") 
+            logging.info("Fetched: {}".format(processed_pdf)) 
             shelf = self.predict_pdf(processed_pdf)
-            print ("Shelving")
-            self.shelf_pdf(processed_pdf, os.path.join(self.output_dir, shelf))
+            logging.info("Shelving...")
+            self.shelf_pdf(processed_pdf, shelf=os.path.join(self.output_dir, shelf))

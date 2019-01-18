@@ -7,7 +7,7 @@ import os,os.path
 import PyPDF2
 from multiprocessing import Queue, Pool
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 def export(pdf_file, in_dir=False, q=None):
 	"""
@@ -27,7 +27,7 @@ def export(pdf_file, in_dir=False, q=None):
 		else:
 			saving_path = os.path.join("{}-{}.jpg".format(pdf_name,pages.index(page)))
 		
-		logging.debug(saving_path)
+		logging.debug("PDF to JPG: {}".format(saving_path))
 		page.save(saving_path,"JPEG")
 	
 	

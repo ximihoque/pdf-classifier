@@ -3,22 +3,38 @@ import tensorflow as tf
 import time, os, glob
 from utils import load_image
 from keras.preprocessing.image import ImageDataGenerator
-import config
+import config, json
+import numpy as np
+import logging, monitor
+logging.basicConfig(level=logging.INFO)
 
 class Model(object):
     """
     Wrapper for keras model for image classification 
     """
     def __init__(self, model_dir, train_dir=None, train=False, valid_dir=None):
+        """
+        Args:
+            model_dir: (str), Directory to export saved model, or load saved model. 
+            train_dir: (str), Directory for images to be trained
+            train: (bool), for training mode or prediction mode
+            valid_dir: (str), Directory for validation data.
+        """
         self.train_dir = train_dir
         self.model_dir = model_dir
         self.valid_dir = valid_dir
 
         #In prediction mode
-        if not train:
-            self.model = self.load_model()
-            self.model.load_weights(self.latest_weights())
-            self.classes = config.classes
+        try:
+            if not train:
+                with open('classes.txt') as json_file:
+                    data = json.load(json_file)
+                    
+                self.classes = {int(i):data[i] for i in data.keys()}
+                self.model = self.load_model()
+                self.model.load_weights(self.latest_weights())
+        except Exception, err:
+            logging.info(err)
 
     def load_model(self):
         classifier = tf.keras.models.Sequential()
@@ -37,15 +53,20 @@ class Model(object):
           zoom_range=0.2, horizontal_flip=True)
         test_imagedata = ImageDataGenerator(rescale=1. / 255)
         training_set = \
-            train_imagedata.flow_from_directory('Samples'
+            train_imagedata.flow_from_directory(self.train_dir
                 , target_size=(64, 64), batch_size=32, class_mode='categorical')
+        
+        #TODO:
+        #handle if validation data not present
         test_set = \
-            test_imagedata.flow_from_directory('Samples_old'
+            test_imagedata.flow_from_directory(self.valid_dir
                 , target_size=(64, 64), batch_size=32, class_mode='categorical')
         #Update the config when this method is invoked
         #reverse the mapping
-        config.classes = {j:i for i,j in zip(training_set.class_indices.keys(), 
-                                training_set.class_indices.values()) }
+        self.classes = {j:i for i,j in zip(training_set.class_indices.keys(), 
+                               training_set.class_indices.values()) }
+        with open('classes.txt', 'w') as outfile:
+            json.dump(self.classes, outfile)
         return training_set, test_set 
 
 
@@ -93,4 +114,11 @@ class Model(object):
         """
         img_tensor = load_image(img_path)
         #return self.classes[self.model.predict_classes(img_tensor)[0]]
-        return self.model.predict(img_tensor)
+        #img_tensor = load_image(img_path)
+        threshold=0.9
+        prob=self.model.predict(img_tensor)
+        i,j = np.unravel_index(prob.argmax(), prob.shape)
+        if prob[i,j]>threshold:
+            return self.classes[self.model.predict_classes(img_tensor)[0]], prob[i,j]
+        else:
+            return "Unclassified", prob[i,j]

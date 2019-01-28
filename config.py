@@ -4,8 +4,8 @@ classes = {
     2: "Purchase Order",
     3: "Payment"
 }
-prediction_source = "test_pdfs"
-output_dir = "output"
+prediction_source = "test_pdfs" #directory containing pdfs
+output_dir = "output" #default
 train_dir = None
 valid_dir = None
-model_dir = "../model_dir"
+model_dir = "../model_dir" #directory containing model
